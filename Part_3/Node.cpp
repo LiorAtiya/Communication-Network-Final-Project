@@ -1,5 +1,6 @@
 #include <string.h>
 #include <iostream>
+#include <sstream>
 #include <vector>
 
 #include <stdio.h>
@@ -24,41 +25,54 @@ struct Node
     vector<Node> neibhoors;
 };
 
-struct Massage{
+struct Massage
+{
     int Msg_ID;
     int Source_ID;
     int Destination_ID;
     int Trailing_Msg;
     int Function_ID;
-    string Payload; 
+    const char* Payload = new char[492];
 
-    void print(){
-        printf("Msg_ID: %d | Source_ID: %d | Destination_ID: %d | Trailing_Msg: %d | Function_ID: %d | Payload: %s",Msg_ID, Source_ID, Destination_ID,Trailing_Msg,Function_ID,Payload);
+    void print()
+    {
+        printf("Msg_ID: %d | Source_ID: %d | Destination_ID: %d | Trailing_Msg: %d | Function_ID: %d | Payload: %s\n", Msg_ID, Source_ID, Destination_ID, Trailing_Msg, Function_ID, Payload);
     }
 };
 
-string setid(Node &n, int id){
-
-    return "Ack";
+string Ack(int msg_id)
+{
+    return "Ack\n" + msg_id;
 }
 
-string Ack(int msg_id){
-    return "Ack\n" + msg_id; 
+string nAck(int msg_id)
+{
+    return "nAck\n" + msg_id;
 }
 
-string nAck(int msg_id){
-    return "nAck\n" + msg_id; 
+string Send(int sock, Massage msg)
+{
+    if (send(sock, &msg, sizeof(msg), 0) == -1)
+    {
+      return "nack";
+    }
+    return "ack";
 }
 
-string Connect(Node &n, char* dest_address, int dest_port){
-    if(n.id == -1){ return "nack"; }
-    
+string Connect(Node &n, const char *dest_address, int dest_port)
+{
+    if (n.id == -1)
+    {
+        return "nack";
+    }
+
     //1.Create socket => AF_INET = ipv4 | SOCK_STREAM = TCP | 0 = Default
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock == -1)
     {
         //2.create socket is faild
-        printf("%s",nAck(sock));
+        // printf("%s", nAck(sock));
+        cout << nAck(sock) << endl;
     }
 
     // "sockaddr_in" is the "derived" from sockaddr structure
@@ -76,11 +90,12 @@ string Connect(Node &n, char* dest_address, int dest_port){
         printf("inet_pton() failed");
     }
 
-    // Link the socket to the port with any IP at this port
-    if (bind(sock, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) == -1)
+    //Make a connection to the server with socket SendingSocket.
+    if (connect(sock, (struct sockaddr *)&serverAddress, sizeof(serverAddress)) == -1)
     {
-        printf("Bind failed with error code ");
-        close(sock);
+        printf("connect() failed with error code : %d\n", errno);
+        //2.create connect is faild
+        
     }
 
     //3. Send massage with connect, source id
@@ -89,29 +104,67 @@ string Connect(Node &n, char* dest_address, int dest_port){
     msg.Destination_ID = 0;
     msg.Function_ID = 4;
     msg.Trailing_Msg = 0;
-    msg.Payload = "";
+    string s = "connect";
+    msg.Payload = s.c_str();
+
+    // //Send massage to destination node
+    // Send(sock, msg);
+    // char buffer[492];
+    // //Wait for ack from the destination node
+    // if(recv(sock, buffer, 492,0) == -1){
+    //     return "nack";
+    // }
 
     msg.print();
     //3+4 - **NEED TO SEND MSG TO DEST NODE AND GET ACK FROM THE DEST**
 
-    return "Ack";
+    return "ack2";
 }
 
-string Route(Node &n, int id){
-    //The node is connected to at least one additional node
-    if(n.neibhoors.size() == 0){ return "nAck"; }
-}
+// string peers(Node &n)
+// {
+//     return "Ack";
+// }
 
-string send(Node &n, int id, int length, string massage){
-    return "Ack";
-}
-
-string peers(Node &n){
-    return "Ack";
-}
-
-int main(){
+int main()
+{
     Node n;
+    string text;
+    string segment;
+
+    while(true){
+
+        vector<string> seglist;
+        cin >> text;
+        stringstream t(text);
+        while(getline(t, segment, ',')){
+            seglist.push_back(segment);
+        }
+        if(seglist.at(0) == "setid"){
+            n.id = stoi(seglist.at(1));
+            cout << "ack1" << endl;
+        }else if(seglist.at(0) == "connect"){
+            const char* ip_address = seglist.at(1).c_str();
+            int port_address = stoi(seglist.at(2));
+            cout << Connect(n, ip_address, port_address) << endl;
+
+            // cout << ip_address << endl;
+            // cout << port_address << endl;
+        }else if(seglist.at(0) == "send"){
+
+            int id = stoi(seglist.at(1));
+            int len = stoi(seglist.at(2));
+            string massage = seglist.at(3);
+
+        }else if(seglist.at(0) == "route"){
+
+            int id = stoi(seglist.at(1));
+
+        }else if(seglist.at(0) == "Peers"){
+
+        }
+    }
+    
 
     return 0;
 }

@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
     listen(listenfd2, 10); 
 
 for (i=0; i<10; ++i)
-	  {
+	{
 	    printf("waiting for input...\n");
 	    ret = wait_for_input();
 	    printf("fd: %d is ready. reading...\n", ret);

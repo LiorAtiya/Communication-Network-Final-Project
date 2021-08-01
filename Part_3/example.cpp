@@ -35,7 +35,11 @@ int main(int argc, char *argv[])
     add_fd_to_monitoring(listenfd);
     printf("adding fd2(%d) to monitoring\n", listenfd2);
     add_fd_to_monitoring(listenfd2);
-    listen(listenfd, 10);
+    if(listen(listenfd, 10) == -1){
+
+        printf("listen() failed with error code\n");  
+        return -1;
+    }
     listen(listenfd2, 10); 
 
 for (i=0; i<10; ++i)

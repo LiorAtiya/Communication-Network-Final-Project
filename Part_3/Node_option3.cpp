@@ -132,38 +132,41 @@ int main()
     string text;
     string segment;
 
-    while(true){
+    // while(true){
 
-        vector<string> seglist;
-        cin >> text;
-        stringstream t(text);
-        while(getline(t, segment, ',')){
-            seglist.push_back(segment);
-        }
-        if(seglist.at(0) == "setid"){
-            n.id = stoi(seglist.at(1));
-            cout << "ack1" << endl;
-        }else if(seglist.at(0) == "connect"){
-            const char* ip_address = seglist.at(1).c_str();
-            int port_address = stoi(seglist.at(2));
-            cout << Connect(n, ip_address, port_address) << endl;
+    //     vector<string> seglist;
+    //     cin >> text;
+    //     stringstream t(text);
+    //     while(getline(t, segment, ',')){
+    //         seglist.push_back(segment);
+    //     }
+    //     if(seglist.at(0) == "setid"){
+    //         n.id = stoi(seglist.at(1));
+    //         cout << "ack1" << endl;
+    //     }else if(seglist.at(0) == "connect"){
+    //         const char* ip_address = seglist.at(1).c_str();
+    //         int port_address = stoi(seglist.at(2));
+    //         cout << Connect(n, ip_address, port_address) << endl;
 
-            // cout << ip_address << endl;
-            // cout << port_address << endl;
-        }else if(seglist.at(0) == "send"){
+    //         // cout << ip_address << endl;
+    //         // cout << port_address << endl;
+    //     }else if(seglist.at(0) == "send"){
 
-            int id = stoi(seglist.at(1));
-            int len = stoi(seglist.at(2));
-            string massage = seglist.at(3);
+    //         int id = stoi(seglist.at(1));
+    //         int len = stoi(seglist.at(2));
+    //         string massage = seglist.at(3);
 
-        }else if(seglist.at(0) == "route"){
+    //     }else if(seglist.at(0) == "route"){
 
-            int id = stoi(seglist.at(1));
+    //         int id = stoi(seglist.at(1));
 
-        }else if(seglist.at(0) == "Peers"){
+    //     }else if(seglist.at(0) == "Peers"){
 
-        }
-    }
+    //     }
+    // }
+
+
+    
     
 
     return 0;

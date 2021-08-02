@@ -188,9 +188,9 @@ string Node::receive(int size=512)
     return reply;
 }
 
-void Route(int num_discover, int ansLen, ){
+// void Route(int num_discover, int ansLen, ){
 
-}
+// }
 
 int main(int argc , char *argv[])
 {
@@ -218,27 +218,41 @@ int main(int argc , char *argv[])
         return -1;
     }
 
-    serv_addr.sin_port = htons(this_port);
-
     printf("adding fd1(%d) to monitoring\n", listenfd);
     add_fd_to_monitoring(listenfd);
     listen(listenfd, 100);
     //--------------------------------------------------
 
-    int init_port;
-    cout <<"Enter node port: ";
-    cin>>init_port;
-    Node c(init_port);
-    string host;
-    int port;
+    while(true){
 
-    cout<<"Enter hostname : ";
-    cin>>host;
-    cout <<"Enter port: ";
-    cin>>port;
+        printf("waiting for input...\n");
+	    ret = wait_for_input();
+        struct sockaddr_in clientAddress; //
+        socklen_t clientAddressLen = sizeof(clientAddress);
 
-    //connect to host
-    c.Connect(host , port);
+        accept(listenfd, (struct sockaddr *)&clientAddress, &clientAddressLen);
+
+	    // printf("fd: %d is ready. reading...\n", ret);
+	    // read(ret, buff, 1025);
+
+        // int init_port;
+        // cout <<"Enter node port: ";
+        // cin>>init_port;
+        Node c(5);
+        string host;
+        int port;
+
+        //For Connect
+        cout << "Connect to another node: " << endl;
+        cout<<"Enter hostname : ";
+        cin>>host;
+        cout <<"Enter port: ";
+        cin>>port;
+
+        //connect to host
+        c.Connect(host , port);
+
+    }
 
     // //send some data
     // c.send_data("GET / HTTP/1.1\r\n\r\n");

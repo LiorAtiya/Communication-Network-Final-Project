@@ -18,26 +18,10 @@
 
 using namespace std;
 
-struct Message
-{
-    int Msg_ID;
-    int Source_ID;
-    int Destination_ID;
-    int Trailing_Msg;
-    int Function_ID;
-    string Payload;
-
-    void print()
-    {
-        cout << "MSG ID: " << Msg_ID << " | Source ID: " << Source_ID << " | Destination ID: " << Destination_ID << " | #Trailing Msg: "
-             << Trailing_Msg << " | Function ID: " << Function_ID << " | Payload: " << Payload << endl;
-    }
-};
-
 class Node
 {
 public:
-    map<int,int> neibhoors;
+    map<int,int> neighbors;
     int id;
 
     string Connect(string ip, int port)
@@ -71,16 +55,7 @@ public:
         {
             printf("connected to the server..\n");
 
-            //3. Send massage with connect, source id
-            Message msg;
-            msg.Msg_ID = 555;
-            msg.Source_ID = this->id;
-            msg.Destination_ID = 0;
-            msg.Function_ID = 4;
-            msg.Trailing_Msg = 0;
-            msg.Payload = "";
-
-            // string dataToSend = "MSG ID: " + to_string(msg.Msg_ID) + " | Source ID: " + to_string(msg.Source_ID) + " | Destination ID: " + to_string(msg.Destination_ID) + " | #Trailing Msg: " + to_string(msg.Trailing_Msg) +" | Function ID: " + to_string(msg.Function_ID) + " | Payload: " +msg.Payload + "\n";
+            //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
             string data = "555," + to_string(this->id) + ",0,4,0,";
             send(sockfd, data.data(), data.size(), 0);
             
@@ -104,8 +79,8 @@ public:
 };
 
 void print_message(int msg_id,int src_id, int dest_id, int trail_msg, int func_id, string payload){
-    cout << "MSG ID: " << msg_id << " | Source ID: " << src_id << " | Destination ID: " << dest_id << " | #Trailing Msg: "
-             << trail_msg << " | Function ID: " << func_id << " | Payload: " << payload << endl;
+    cout << "\nMSG ID: " << msg_id << " | Source ID: " << src_id << " | Destination ID: " << dest_id << " | #Trailing Msg: "
+             << trail_msg << " | Function ID: " << func_id << " | Payload: " << payload << "\n" << endl;
 }
 
 int main(int argc, char *argv[])
@@ -195,6 +170,10 @@ int main(int argc, char *argv[])
                 while (getline(t, segment, ',')){ msg_details.push_back(segment); }
 
                 print_message(stoi(msg_details.at(0)),stoi(msg_details.at(1)),stoi(msg_details.at(2)),stoi(msg_details.at(3)),stoi(msg_details.at(4)),"");
+            
+                //Enter to the neibhoors
+                // // int port = htons(cli.sin_port);
+                n.neighbors.insert({stoi(msg_details.at(1)),connfd});
             }
         }
         //Read from the command line
@@ -235,8 +214,12 @@ int main(int argc, char *argv[])
 
                 int id = stoi(seglist.at(1));
             }
-            else if (seglist.at(0) == "Peers")
+            else if (seglist.at(0) == "peers")
             {
+                for(const auto& pair : n.neighbors){
+                    cout << "\nID: " << pair.first << " | Socket(File descriptor): " << pair.second << endl;
+                }
+                cout << "ack peers\n";
             }
         }
     }

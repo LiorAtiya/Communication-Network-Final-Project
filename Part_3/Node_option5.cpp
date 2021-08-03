@@ -14,6 +14,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <map>
 
 using namespace std;
 
@@ -43,16 +44,10 @@ struct Message
 
 class Node
 {
-private:
-    int sock;
-    string address;
-    string response_data = "";
-    int port;
-    struct sockaddr_in server;
-    vector<Node> neibhoors;
-
 public:
+    map<int,int> neighbors;
     int id;
+
     string Connect(string ip, int port)
     {
         int sockfd, connfd;
@@ -80,8 +75,10 @@ public:
             printf("connection with the server failed...\n");
             exit(0);
         }
-        else{
+        else
+        {
             printf("connected to the server..\n");
+
             //3. Send massage with connect, source id
             Message msg;
             msg.Msg_ID = 555;
@@ -91,21 +88,38 @@ public:
             msg.Trailing_Msg = 0;
             msg.Payload = "";
 
-            send(sockfd, &msg, sizeof(msg), 0);
+            // send(sockfd, &msg, sizeof(msg), 0);
+
+            string dataToSend = "MSG ID: " + to_string(msg.Msg_ID) + " | Source ID: " + to_string(msg.Source_ID) + " | Destination ID: " + to_string(msg.Destination_ID) + " | #Trailing Msg: " + to_string(msg.Trailing_Msg) +" | Function ID: " + to_string(msg.Function_ID) + " | Payload: " +msg.Payload + "\n";
+            send(sockfd, dataToSend.c_str(), dataToSend.size(), 0);
         }
 
         return "ack";
+    }
+
+    string Ack(int numOfMsg)
+    {
+        return "Ack";
+    }
+
+    string Nack(int numOfMsg)
+    {
+        return "Nack";
     }
     // bool Send(int len, Message msg);
     // void Route();
     // string receive(int);
 };
 
+void print_message(int msg_id,int src_id, int dest_id, int trail_msg, int func_id, string payload){
+    cout << "MSG ID: " << msg_id << " | Source ID: " << src_id << " | Destination ID: " << dest_id << " | #Trailing Msg: "
+             << trail_msg << " | Function ID: " << func_id << " | Payload: " << payload << endl;
+}
+
 int main(int argc, char *argv[])
 {
     int listenfd = 0;
     int ret, i;
-    char buff[1025];
     int connfd, len;
     struct sockaddr_in servaddr, cli;
 
@@ -150,7 +164,7 @@ int main(int argc, char *argv[])
     int e = 0;
     while (true)
     {
-        e++;
+        char buff[1025];
         printf("waiting for input...\n");
         //return the fd
         ret = wait_for_input();
@@ -170,41 +184,59 @@ int main(int argc, char *argv[])
             else
             {
                 printf("server acccept the client...\n");
-                Message msg;
-                int recive = recv(connfd, &msg, sizeof(Message), 0);
+                add_fd_to_monitoring(connfd);
 
-                printf("server acccept the client...\n");
-                read(ret, buff, 1025);
+                uint32_t dataLength;
+                std::vector<uint8_t> rcvBuf;    // Allocate a receive buffer
+                rcvBuf.resize(dataLength,0x00); // with the necessary size
+
+                string msg = "";
+                recv(connfd,&(rcvBuf[0]),dataLength,0); // Receive the string data
+                for(int i=0 ; i < rcvBuf.size() ; i++){
+                    msg += rcvBuf.at(i);
+                    cout << rcvBuf.at(i);
+                }
+                
+                // string segment;
+                // stringstream t(msg);
+                // vector<string> msg_details;
+
+                // while (getline(t, segment, ','))
+                // {
+                //     msg_details.push_back(segment);
+                // }
+                // int node_id = stoi(msg_details.at(1));
+                // int port = htons(cli.sin_port);
+                // n.neighbors.insert({node_id,connfd});
+
+                // print_message(stoi(msg_details.at(0)),stoi(msg_details.at(1)),stoi(msg_details.at(2)),stoi(msg_details.at(3)),stoi(msg_details.at(4)),msg_details.at(5));
             }
-        }else{
+        }
+        //Read from the command line
+        else
+        {
+            printf("fd: %d is ready. reading...\n", ret);
             read(ret, buff, 1025);
-        }
-        // printf("fd: %d is ready. reading...\n", ret);
 
-        string segment;
-        stringstream t(buff);
-        vector<string> seglist;
+            string segment;
+            stringstream t(buff);
+            vector<string> seglist;
 
-        while (getline(t, segment, ','))
-        {
-            seglist.push_back(segment);
-        }
+            while (getline(t, segment, ','))
+            {
+                seglist.push_back(segment);
+            }
 
-        if (seglist.size() > 0)
-        {
             if (seglist.at(0) == "setid")
             {
                 n.id = stoi(seglist.at(1));
-                cout << "ack" << endl;
+                cout << "ack\n";
             }
             else if (seglist.at(0) == "connect")
             {
                 string ip_address = seglist.at(1).c_str();
                 int port_address = stoi(seglist.at(2));
                 cout << n.Connect(ip_address, port_address) << endl;
-
-                // cout << ip_address << endl;
-                // cout << port_address << endl;
             }
             else if (seglist.at(0) == "send")
             {
@@ -222,9 +254,5 @@ int main(int argc, char *argv[])
             {
             }
         }
-        else
-        {
-        }
-
     }
 }

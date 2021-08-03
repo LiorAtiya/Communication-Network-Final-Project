@@ -44,19 +44,15 @@ struct Message
 class Node
 {
 private:
+    int sock;
     string address;
+    string response_data = "";
     int port;
-    vector<int> neibhoors;
-    int id;
+    struct sockaddr_in server;
+    vector<Node> neibhoors;
 
 public:
-    Node()
-    {
-        this->address = "127.0.0.1";
-    }
-    int getID() { return this->id; }
-    void setID(int _id) { this->id = _id; }
-
+    int id;
     string Connect(string ip, int port)
     {
         int sockfd, connfd;
@@ -84,10 +80,8 @@ public:
             printf("connection with the server failed...\n");
             exit(0);
         }
-        else
-        {
+        else{
             printf("connected to the server..\n");
-
             //3. Send massage with connect, source id
             Message msg;
             msg.Msg_ID = 555;
@@ -97,23 +91,10 @@ public:
             msg.Trailing_Msg = 0;
             msg.Payload = "";
 
-            // send(sockfd, &msg, sizeof(msg), 0);
-
-            string dataToSend = "MSG ID: " + to_string(msg.Msg_ID) + " | Source ID: " + to_string(msg.Source_ID) + " | Destination ID: " + to_string(msg.Destination_ID) + " | #Trailing Msg: " + to_string(msg.Trailing_Msg) +" | Function ID: " + to_string(msg.Function_ID) + " | Payload: " +msg.Payload + "\n";
-            send(sockfd, dataToSend.c_str(), dataToSend.size(), 0);
+            send(sockfd, &msg, sizeof(msg), 0);
         }
 
         return "ack";
-    }
-
-    string Ack(int numOfMsg)
-    {
-        return "Ack";
-    }
-
-    string Nack(int numOfMsg)
-    {
-        return "Nack";
     }
     // bool Send(int len, Message msg);
     // void Route();
@@ -124,6 +105,7 @@ int main(int argc, char *argv[])
 {
     int listenfd = 0;
     int ret, i;
+    char buff[1025];
     int connfd, len;
     struct sockaddr_in servaddr, cli;
 
@@ -168,7 +150,7 @@ int main(int argc, char *argv[])
     int e = 0;
     while (true)
     {
-        char buff[1025];
+        e++;
         printf("waiting for input...\n");
         //return the fd
         ret = wait_for_input();
@@ -188,46 +170,41 @@ int main(int argc, char *argv[])
             else
             {
                 printf("server acccept the client...\n");
-                add_fd_to_monitoring(connfd);
+                Message msg;
+                int recive = recv(connfd, &msg, sizeof(Message), 0);
 
-                // Message msg;
-                // int recive = recv(connfd, &msg, sizeof(Message), 0);
-
-                uint32_t dataLength;
-                std::vector<uint8_t> rcvBuf;    // Allocate a receive buffer
-                rcvBuf.resize(dataLength,0x00); // with the necessary size
-
-                recv(connfd,&(rcvBuf[0]),dataLength,0); // Receive the string data
-                for(int i=0 ; i < rcvBuf.size() ; i++){
-                    cout << rcvBuf.at(i);
-                }
+                printf("server acccept the client...\n");
+                read(ret, buff, 1025);
             }
-        }
-        //Read from the command line
-        else
-        {
-            printf("fd: %d is ready. reading...\n", ret);
+        }else{
             read(ret, buff, 1025);
+        }
+        // printf("fd: %d is ready. reading...\n", ret);
 
-            string segment;
-            stringstream t(buff);
-            vector<string> seglist;
+        string segment;
+        stringstream t(buff);
+        vector<string> seglist;
 
-            while (getline(t, segment, ','))
-            {
-                seglist.push_back(segment);
-            }
+        while (getline(t, segment, ','))
+        {
+            seglist.push_back(segment);
+        }
 
+        if (seglist.size() > 0)
+        {
             if (seglist.at(0) == "setid")
             {
-                n.setID(stoi(seglist.at(1)));
-                cout << "ack\n";
+                n.id = stoi(seglist.at(1));
+                cout << "ack" << endl;
             }
             else if (seglist.at(0) == "connect")
             {
                 string ip_address = seglist.at(1).c_str();
                 int port_address = stoi(seglist.at(2));
                 cout << n.Connect(ip_address, port_address) << endl;
+
+                // cout << ip_address << endl;
+                // cout << port_address << endl;
             }
             else if (seglist.at(0) == "send")
             {
@@ -245,5 +222,9 @@ int main(int argc, char *argv[])
             {
             }
         }
+        else
+        {
+        }
+
     }
 }

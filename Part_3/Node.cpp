@@ -18,10 +18,42 @@
 
 using namespace std;
 
+// Function designed for chat between client and server.
+void func(int sockfd)
+{
+    char buff[1024];
+    int n;
+    // infinite loop for chat
+    for (;;)
+    {
+        bzero(buff, 1024);
+
+        // read the message from client and copy it in buffer
+        read(sockfd, buff, sizeof(buff));
+        // print buffer which contains the client contents
+        printf("From client: %s\t To client : ", buff);
+        bzero(buff, 1024);
+        n = 0;
+        // copy server message in the buffer
+        while ((buff[n++] = getchar()) != '\n')
+            ;
+
+        // and send that buffer to client
+        write(sockfd, buff, sizeof(buff));
+
+        // if msg contains "Exit" then server exit and chat ended.
+        if (strncmp("exit", buff, 4) == 0)
+        {
+            printf("Server Exit...\n");
+            break;
+        }
+    }
+}
+
 class Node
 {
 public:
-    map<int,int> neighbors;
+    map<int, int> neighbors;
     int id;
 
     string Connect(string ip, int port)
@@ -56,9 +88,9 @@ public:
             printf("connected to the server..\n");
 
             //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
-            string data = "555," + to_string(this->id) + ",0,4,0,";
+            string data = "555," + to_string(this->id) + ",0,0,4,";
             send(sockfd, data.data(), data.size(), 0);
-            
+
         }
 
         return "ack";
@@ -78,9 +110,35 @@ public:
     // string receive(int);
 };
 
-void print_message(int msg_id,int src_id, int dest_id, int trail_msg, int func_id, string payload){
+void print_message(int msg_id, int src_id, int dest_id, int trail_msg, int func_id, string payload)
+{
     cout << "\nMSG ID: " << msg_id << " | Source ID: " << src_id << " | Destination ID: " << dest_id << " | #Trailing Msg: "
-             << trail_msg << " | Function ID: " << func_id << " | Payload: " << payload << "\n" << endl;
+         << trail_msg << " | Function ID: " << func_id << " | Payload: " << payload << "\n"
+         << endl;
+}
+
+vector<string> recive_massage(int sockfd)
+{
+    uint32_t dataLength;
+    std::vector<uint8_t> rcvBuf;     // Allocate a receive buffer
+    rcvBuf.resize(dataLength, 0x00); // with the necessary size
+
+    recv(sockfd, &(rcvBuf[0]), dataLength, 0); // Receive the string data
+    string data_recv = "";
+    for (int i = 0; i < rcvBuf.size(); i++)
+    {
+        data_recv += rcvBuf.at(i);
+    }
+
+    string segment;
+    stringstream t(data_recv);
+    vector<string> msg_details;
+
+    while (getline(t, segment, ','))
+    {
+        msg_details.push_back(segment);
+    }
+    return msg_details;
 }
 
 int main(int argc, char *argv[])
@@ -135,9 +193,10 @@ int main(int argc, char *argv[])
         printf("waiting for input...\n");
         //return the fd
         ret = wait_for_input();
-        //Recive from any another socket
-        if (ret != 0)
+        //Accept connection from another socket
+        if (ret == listenfd)
         {
+            printf("fd: %d is ready. reading...\n", ret);
             struct sockaddr_in cli;
             socklen_t len = sizeof(cli);
 
@@ -151,30 +210,27 @@ int main(int argc, char *argv[])
             else
             {
                 printf("server acccept the client...\n");
-                add_fd_to_monitoring(connfd);
 
-                uint32_t dataLength;
-                std::vector<uint8_t> rcvBuf;    // Allocate a receive buffer
-                rcvBuf.resize(dataLength,0x00); // with the necessary size
+                vector<string> msg_details = recive_massage(connfd);
 
-                recv(connfd,&(rcvBuf[0]),dataLength,0); // Receive the string data
-                string data_recv = "";
-                for(int i=0 ; i < rcvBuf.size() ; i++){
-                    data_recv += rcvBuf.at(i);
-                }
+                // for (int i = 0; i < msg_details.size(); i++)
+                // {
+                //     cout << msg_details.at(i) << endl;
+                // }
+                print_message(stoi(msg_details.at(0)), stoi(msg_details.at(1)), stoi(msg_details.at(2)), stoi(msg_details.at(3)), stoi(msg_details.at(4)), "");
 
-                string segment;
-                stringstream t(data_recv);
-                vector<string> msg_details;
+                // Enter to the neibhoors
+                // int port = htons(cli.sin_port);
+                // n.neighbors.insert({stoi(msg_details.at(1)), connfd});
 
-                while (getline(t, segment, ',')){ msg_details.push_back(segment); }
-
-                print_message(stoi(msg_details.at(0)),stoi(msg_details.at(1)),stoi(msg_details.at(2)),stoi(msg_details.at(3)),stoi(msg_details.at(4)),"");
-            
-                //Enter to the neibhoors
-                // // int port = htons(cli.sin_port);
-                n.neighbors.insert({stoi(msg_details.at(1)),connfd});
+                // string data = "777," + to_string(n.id) + ","+msg_details.at(1)+",0,4,";
+                // send(connfd, data.data(), data.size(), 0);
             }
+        }
+        else if (ret != 0)
+        {
+            vector<string> msg_details = recive_massage(connfd);
+            print_message(stoi(msg_details.at(0)), stoi(msg_details.at(1)), stoi(msg_details.at(2)), stoi(msg_details.at(3)), stoi(msg_details.at(4)), "");
         }
         //Read from the command line
         else
@@ -216,7 +272,8 @@ int main(int argc, char *argv[])
             }
             else if (seglist.at(0) == "peers")
             {
-                for(const auto& pair : n.neighbors){
+                for (const auto &pair : n.neighbors)
+                {
                     cout << "\nID: " << pair.first << " | Socket(File descriptor): " << pair.second << endl;
                 }
                 cout << "ack peers\n";

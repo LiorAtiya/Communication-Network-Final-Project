@@ -46,12 +46,11 @@ vector<string> recieve_massage(int sockfd){
 class Node
 {
 public:
-    map<int, int> neighbors;
+    map<int, int> neighbors; // src: dest_port, dest_port
     int id;
 
     string Connect(string ip, int port)
     {
-
         int sockfd;
         struct sockaddr_in servaddr;
 
@@ -103,10 +102,16 @@ public:
             
             cout << dest_id << endl;
             return "Ack";
-
         }
         return "Ack";
     }
+
+    string Send(int port, string msg)
+    {
+
+        return "ack";
+    }
+
 };
 
 int main(int argc, char *argv[])

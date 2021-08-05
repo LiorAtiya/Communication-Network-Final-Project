@@ -13,75 +13,16 @@
 #include <string.h>
 #include <iostream>
 #include <sstream>
-#include <map>
 #include <vector>
+#include <map>
 
 using namespace std;
-
-struct Message
-<<<<<<< HEAD
-{
-    int Msg_ID;
-    int Source_ID;
-    int Destination_ID;
-    int Trailing_Msg;
-    int Function_ID;
-    const char *Payload = new char[492];
-
-    Message()
-    {
-        this->Msg_ID = 0;
-        this->Source_ID = 0;
-        this->Destination_ID = 0;
-        this->Trailing_Msg = 0;
-        this->Function_ID = 0;
-        this->Payload = "";
-    }
-
-    void print()
-    {
-        printf("Msg_ID: %d | Source_ID: %d | Destination_ID: %d | Trailing_Msg: %d | Function_ID: %d | Payload: %s\n", Msg_ID, Source_ID, Destination_ID, Trailing_Msg, Function_ID, Payload);
-    }
-};
-
-class Node
-=======
->>>>>>> d99a81eb1aae2eb26d5bcabfbb3375013d6e1c29
-{
-    int Msg_ID;
-    int Source_ID;
-    int Destination_ID;
-    int Trailing_Msg;
-    int Function_ID;
-    string Payload;
-
-    Message(){
-        Msg_ID = 0;
-        Source_ID = 0;
-        Destination_ID = 0;
-        Trailing_Msg = 0;
-        Function_ID = 0;
-        Payload = "";
-    }
-    void print()
-    {
-        cout << "MSG ID: " << Msg_ID << " | Source ID: " << Source_ID << " | Destination ID: " << Destination_ID << " | #Trailing Msg: "
-             << Trailing_Msg << " | Function ID: " << Function_ID << " | Payload: " << Payload << endl;
-    }
-};
 
 class Node
 {
 public:
-    // string address;
-    // int port;
     map<int,int> neighbors;
     int id;
-
-    // Node()
-    // {
-    //     this->address = "127.0.0.1";
-    // }
 
     string Connect(string ip, int port)
     {
@@ -93,10 +34,10 @@ public:
         if (sockfd == -1)
         {
             printf("socket creation failed...\n");
-            return "Nack";
+            exit(0);
         }
         else
-            // printf("Socket successfully created..\n");
+            printf("Socket successfully created..\n");
         bzero(&servaddr, sizeof(servaddr));
 
         // assign IP, PORT
@@ -108,36 +49,17 @@ public:
         if (connect(sockfd, (sockaddr *)&servaddr, sizeof(servaddr)) != 0)
         {
             printf("connection with the server failed...\n");
-            return "Nack";
+            exit(0);
         }
         else
-<<<<<<< HEAD
-            printf("connected to the server...\n");
-
-        Message msg;
-        msg.Source_ID = this->id;
-        msg.Destination_ID = 0;
-        msg.Function_ID = 4;
-        msg.print();
-=======
         {
-            // printf("connected to the server..\n");
+            printf("connected to the server..\n");
 
-            //3. Send massage with connect, source id
-            Message msg;
-            msg.Msg_ID = 555;
-            msg.Source_ID = this->id;
-            msg.Destination_ID = 0;
-            msg.Function_ID = 4;
-            msg.Trailing_Msg = 0;
-            msg.Payload = "";
-
-            // send(sockfd, &msg, sizeof(msg), 0);
-
-            string dataToSend = to_string(msg.Msg_ID) + "," + to_string(msg.Source_ID) + "," + to_string(msg.Destination_ID) + "," + to_string(msg.Trailing_Msg) +"," + to_string(msg.Function_ID) + "," +msg.Payload + "\n";
-            send(sockfd, dataToSend.c_str(), dataToSend.size(), 0);
+            //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
+            string data = "555," + to_string(this->id) + ",0,4,0,";
+            send(sockfd, data.data(), data.size(), 0);
+            
         }
->>>>>>> d99a81eb1aae2eb26d5bcabfbb3375013d6e1c29
 
         return "ack";
     }
@@ -151,19 +73,14 @@ public:
     {
         return "Nack";
     }
-    string Send(int id,int len, string msg){
-        if(id != this->id) return "Nack";
-
-
-    }
-
+    // bool Send(int len, Message msg);
     // void Route();
     // string receive(int);
 };
 
 void print_message(int msg_id,int src_id, int dest_id, int trail_msg, int func_id, string payload){
-    cout << "MSG ID: " << msg_id << " | Source ID: " << src_id << " | Destination ID: " << dest_id << " | #Trailing Msg: "
-             << trail_msg << " | Function ID: " << func_id << " | Payload: " << payload << endl;
+    cout << "\nMSG ID: " << msg_id << " | Source ID: " << src_id << " | Destination ID: " << dest_id << " | #Trailing Msg: "
+             << trail_msg << " | Function ID: " << func_id << " | Payload: " << payload << "\n" << endl;
 }
 
 int main(int argc, char *argv[])
@@ -181,7 +98,7 @@ int main(int argc, char *argv[])
         exit(0);
     }
     else
-        // printf("Socket successfully created..\n");
+        printf("Socket successfully created..\n");
     bzero(&servaddr, sizeof(servaddr));
 
     // assign IP, PORT
@@ -196,7 +113,7 @@ int main(int argc, char *argv[])
         exit(0);
     }
     else
-        // printf("Socket successfully binded..\n");
+        printf("Socket successfully binded..\n");
 
     // Now server is ready to listen and verification
     if ((listen(listenfd, 5)) != 0)
@@ -205,13 +122,13 @@ int main(int argc, char *argv[])
         exit(0);
     }
     else
-        // printf("Server listening..\n");
+        printf("Server listening..\n");
 
     printf("adding fd1(%d) to monitoring\n", listenfd);
     add_fd_to_monitoring(listenfd);
 
     Node n;
-    int e = 0;
+
     while (true)
     {
         char buff[1025];
@@ -228,66 +145,36 @@ int main(int argc, char *argv[])
             connfd = accept(ret, (sockaddr *)&cli, &len);
             if (connfd < 0)
             {
-<<<<<<< HEAD
-                printf("server accept failed...\n");
+                printf("server acccept failed...\n");
                 exit(0);
             }
             else
             {
-                printf("server accept the client...\n");
-
-                Message msg;
-                recv(sockfd, &msg, sizeof(msg), 0);
-
-                msg.Source_ID = n.id;
-                msg.Destination_ID = 1;
-                msg.Function_ID = 1;
-                msg.print();
-
-                read(ret, buff, 1025);
-            }
-        }
-        else
-        {
-            read(ret, buff, 1025);
-=======
-                printf("server acccept failed...\n");
-                return -1;
-            }
-            else
-            {
-                // printf("server acccept the client...\n");
+                printf("server acccept the client...\n");
                 add_fd_to_monitoring(connfd);
-
-                // Message msg;
-                // int recive = recv(connfd, &msg, sizeof(Message), 0);
 
                 uint32_t dataLength;
                 std::vector<uint8_t> rcvBuf;    // Allocate a receive buffer
                 rcvBuf.resize(dataLength,0x00); // with the necessary size
-                
-                string msg = "";
+
                 recv(connfd,&(rcvBuf[0]),dataLength,0); // Receive the string data
+                string data_recv = "";
                 for(int i=0 ; i < rcvBuf.size() ; i++){
-                    msg += rcvBuf.at(i);
+                    data_recv += rcvBuf.at(i);
                 }
-                
+
                 string segment;
-                stringstream t(msg);
+                stringstream t(data_recv);
                 vector<string> msg_details;
 
-                while (getline(t, segment, ','))
-                {
-                    msg_details.push_back(segment);
-                }
-                int node_id = stoi(msg_details.at(1));
-                int port = htons(cli.sin_port);
-                n.neighbors.insert({node_id,connfd});
+                while (getline(t, segment, ',')){ msg_details.push_back(segment); }
 
-                print_message(stoi(msg_details.at(0)),stoi(msg_details.at(1)),stoi(msg_details.at(2)),stoi(msg_details.at(3)),stoi(msg_details.at(4)),msg_details.at(5));
-                
+                print_message(stoi(msg_details.at(0)),stoi(msg_details.at(1)),stoi(msg_details.at(2)),stoi(msg_details.at(3)),stoi(msg_details.at(4)),"");
+            
+                //Enter to the neibhoors
+                // // int port = htons(cli.sin_port);
+                n.neighbors.insert({stoi(msg_details.at(1)),connfd});
             }
->>>>>>> d99a81eb1aae2eb26d5bcabfbb3375013d6e1c29
         }
         //Read from the command line
         else
@@ -304,13 +191,10 @@ int main(int argc, char *argv[])
                 seglist.push_back(segment);
             }
 
-            cout << "seglist.at(0):" << seglist.at(0) << endl;
-            cout << "seglist.at(1):" << seglist.at(1) << endl;
-
             if (seglist.at(0) == "setid")
             {
                 n.id = stoi(seglist.at(1));
-                cout << "ack setid\n";
+                cout << "ack\n";
             }
             else if (seglist.at(0) == "connect")
             {
@@ -321,11 +205,9 @@ int main(int argc, char *argv[])
             else if (seglist.at(0) == "send")
             {
 
-                // int id = stoi(seglist.at(1));
-                // int len = stoi(seglist.at(2));
-                // string massage = seglist.at(3);
-                // n.
-                // cout << "ack send\n";
+                int id = stoi(seglist.at(1));
+                int len = stoi(seglist.at(2));
+                string massage = seglist.at(3);
             }
             else if (seglist.at(0) == "route")
             {

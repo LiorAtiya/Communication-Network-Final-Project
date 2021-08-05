@@ -20,6 +20,29 @@ static int message_id = 1;
 
 using namespace std;
 
+void print_message(string msg_id, string src_id, string dest_id, string trail_msg, string func_id, string payload)
+{
+    cout << "\nMSG ID: " << msg_id << " | Source ID: " << src_id << " | Destination ID: " << dest_id << " | #Trailing Msg: "
+         << trail_msg << " | Function ID: " << func_id << " | Payload: " << payload << "\n"
+         << endl;
+}
+
+vector<string> recieve_massage(int sockfd){
+    char buffer[1024] = {0};
+    read(sockfd, buffer, 1024);
+
+    string segment;
+    stringstream t(buffer);
+    vector<string> msg_details;
+
+    while (getline(t, segment, ','))
+    {
+        msg_details.push_back(segment);
+    }
+    return msg_details;
+
+}
+
 class Node
 {
 public:
@@ -66,38 +89,23 @@ public:
             printf("connected to the server..\n");
 
             //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
-            string data = to_string(message_id++) + "," + to_string(this->id) + ",0,0,4,\n";
+            string data = to_string(message_id++) + "," + to_string(this->id) + ",0,0,4,";
             int len = sizeof(data);
             send(sockfd, &data[0], len, 0);
+            
+            vector<string> msg_details = recieve_massage(sockfd);
+            print_message(msg_details.at(0), msg_details.at(1), msg_details.at(2), msg_details.at(3), msg_details.at(4), "");
 
-            char buffer[1024] = {0};
-            read(sockfd, buffer, 1024);
-            printf("%s\n", buffer);
+            // Stores the destination id & fd in the neighbors map
+            int dest_id = stoi(msg_details.at(1));
+            int dest_fd = sockfd;
+            this->neighbors.insert(pair<int, int>(dest_id, dest_fd));
+            
+            cout << dest_id << endl;
+            return "Ack";
 
-            // Stores the destination id
-            string segment;
-            stringstream t(buffer);
-            vector<string> seglist;
-            while (getline(t, segment, ','))
-            {
-                seglist.push_back(segment);
-            }
-            auto dest_id = stoi(seglist.at(1));
-
-            // inserts the connection to the neighbors map
-            neighbors.insert(pair<int, int>(this->id, dest_id));
-            neighbors.insert(pair<int, int>(dest_id, this->id));
-
-            // Prints the neighbors map
-            for (auto const &pair : neighbors)
-            {
-                std::cout << "{" << pair.first << ": " << pair.second << "}\n";
-            }
-
-            // vector<string> msg_details = recive_massage(sockfd);
-            // print_message(stoi(msg_details.at(0)), stoi(msg_details.at(1)), stoi(msg_details.at(2)), stoi(msg_details.at(3)), stoi(msg_details.at(4)), "");
         }
-        return "ack";
+        return "Ack";
     }
 };
 
@@ -155,7 +163,7 @@ int main(int argc, char *argv[])
         //return the fd
         ret = wait_for_input();
         //Accept connection from another socket
-        if (ret != 0)
+        if (ret == listenfd)
         {
             printf("fd: %d is ready. reading...\n", ret);
             struct sockaddr_in cli;
@@ -172,32 +180,23 @@ int main(int argc, char *argv[])
             {
                 printf("server acccept the client...\n");
 
-                char buffer[1024] = {0};
-                read(connfd, buffer, 1024);
-                printf("%s\n", buffer);
-
-                // Stores the new destination id
-                string segment;
-                stringstream t(buffer);
-                vector<string> seglist;
-                while (getline(t, segment, ','))
-                {
-                    seglist.push_back(segment);
-                }
-                auto dest_id = stoi(seglist.at(1));
+                vector<string> msg_details = recieve_massage(connfd);
+                print_message(msg_details.at(0), msg_details.at(1), msg_details.at(2), msg_details.at(3), msg_details.at(4), "");
+                
+                // Stores the destination id & fd in the neighbors map
+                int dest_id = stoi(msg_details.at(1));
+                int dest_fd = connfd;
+                n.neighbors.insert(pair<int, int>(dest_id, dest_fd));
 
                 //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
-                string data = to_string(message_id++) + "," + to_string(n.id) + "," + to_string(dest_id) + ",0,4,\n";
+                string data = to_string(message_id++) + "," + to_string(n.id) + "," + to_string(dest_id) + ",0,1,";
                 int len = sizeof(data);
                 send(connfd, &data[0], len, 0);
 
                 add_fd_to_monitoring(connfd);
-
-                printf("waiting for input...\n");
-                ret = wait_for_input();
             }
         }
-        else
+        else if (ret == 0)
         {
             char buff[1025];
             printf("fd: %d is ready. reading (from keyboard)...\n", ret);
@@ -223,6 +222,15 @@ int main(int argc, char *argv[])
                 int port_address = stoi(seglist.at(2));
                 cout << n.Connect(ip_address, port_address) << endl;
             }
+            else if (seglist.at(0) == "peers")
+            {
+                for (const auto &pair : n.neighbors)
+                {
+                    cout << "\nID: " << pair.first << " | Socket(File descriptor): " << pair.second << endl;
+                }
+                cout << "ack peers\n";
+            }
         }
     }
+
 }

@@ -92,7 +92,7 @@ public:
             send(sockfd, data.data(), data.size(), 0);
 
             vector<string> msg_details = recive_massage(sockfd);
-            // print_message(stoi(msg_details.at(0)), stoi(msg_details.at(1)), stoi(msg_details.at(2)), stoi(msg_details.at(3)), stoi(msg_details.at(4)), "");
+            print_message(stoi(msg_details.at(0)), stoi(msg_details.at(1)), stoi(msg_details.at(2)), stoi(msg_details.at(3)), stoi(msg_details.at(4)), "");
         }
 
         return "ack";
@@ -183,7 +183,7 @@ int main(int argc, char *argv[])
                 printf("server acccept the client...\n");
 
                 vector<string> msg_details = recive_massage(connfd);
-                // print_message(stoi(msg_details.at(0)), stoi(msg_details.at(1)), stoi(msg_details.at(2)), stoi(msg_details.at(3)), stoi(msg_details.at(4)), "");
+                print_message(stoi(msg_details.at(0)), stoi(msg_details.at(1)), stoi(msg_details.at(2)), stoi(msg_details.at(3)), stoi(msg_details.at(4)), "");
                 // Enter to the neibhoors
                 // int port = htons(cli.sin_port);
                 // n.neighbors.insert({stoi(msg_details.at(1)), connfd});

@@ -23,12 +23,11 @@ using namespace std;
 class Node
 {
 public:
-    map<int, int> neighbors;
+    map<int, int> neighbors; // src: dest_port, dest_port
     int id;
 
     string Connect(string ip, int port)
     {
-
         int sockfd;
         struct sockaddr_in servaddr;
 
@@ -85,8 +84,7 @@ public:
             auto dest_id = stoi(seglist.at(1));
 
             // inserts the connection to the neighbors map
-            neighbors.insert(pair<int, int>(this->id, dest_id));
-            neighbors.insert(pair<int, int>(dest_id, this->id));
+            neighbors.insert(pair<int, int>(dest_id, port));
 
             // Prints the neighbors map
             for (auto const &pair : neighbors)
@@ -99,6 +97,13 @@ public:
         }
         return "ack";
     }
+
+    string Send(int port, string msg)
+    {
+
+        return "ack";
+    }
+
 };
 
 int main(int argc, char *argv[])

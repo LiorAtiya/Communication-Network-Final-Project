@@ -106,10 +106,27 @@ public:
         return "Ack";
     }
 
-    string Send(int port, string msg)
+    string Send(int dest_id, string payload)
     {
+        if (neighbors.count(dest_id) != 0)
+        {
+            printf("sending the message\n");
 
-        return "ack";
+            //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
+            string data = to_string(message_id++) + "," + to_string(this->id) + "," + to_string(dest_id) + ",0,32," + payload;
+            int len = sizeof(data);
+            int sockfd = neighbors.at(dest_id);
+            send(sockfd, &data[0], len, 0);
+
+            vector<string> msg_details = recieve_massage(sockfd);
+            print_message(msg_details.at(0), msg_details.at(1), msg_details.at(2), msg_details.at(3), msg_details.at(4), msg_details.at(5));
+        }
+        else
+        {
+            printf("sending failed\n");
+            return "Nack";
+        }
+        return "Ack";
     }
 
 };
@@ -227,6 +244,12 @@ int main(int argc, char *argv[])
                 int port_address = stoi(seglist.at(2));
                 cout << n.Connect(ip_address, port_address) << endl;
             }
+            else if (seglist.at(0) == "send"){
+                int dest_id = stoi(seglist.at(1));
+                string massage = seglist.at(3);
+
+                cout << n.Send(dest_id, massage) << endl;
+            }
             else if (seglist.at(0) == "peers")
             {
                 for (const auto &pair : n.neighbors)
@@ -235,6 +258,15 @@ int main(int argc, char *argv[])
                 }
                 cout << "ack peers\n";
             }
+        }else{
+            
+            vector<string> msg_details = recieve_massage(ret);
+            print_message(msg_details.at(0), msg_details.at(1), msg_details.at(2), msg_details.at(3), msg_details.at(4), msg_details.at(5));
+
+            //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
+            string data = to_string(message_id++) + "," + to_string(n.id) + "," + msg_details.at(1) + ",0,1," + msg_details.at(0);
+            int len = sizeof(data);
+            send(ret, &data[0], len, 0);
         }
     }
 

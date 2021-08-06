@@ -20,7 +20,10 @@ static int message_id = 1;
 
 using namespace std;
 
+<<<<<<< HEAD
 //-------------Utility-functions-----------------
+=======
+>>>>>>> ea41a2c584373b53ddfbf2808acdc88bffa5ed29
 void print_message(string msg_id, string src_id, string dest_id, string trail_msg, string func_id, string payload)
 {
     cout << "\nMSG ID: " << msg_id << " | Source ID: " << src_id << " | Destination ID: " << dest_id << " | #Trailing Msg: "
@@ -28,8 +31,12 @@ void print_message(string msg_id, string src_id, string dest_id, string trail_ms
          << endl;
 }
 
+<<<<<<< HEAD
 vector<string> recieve_massage(int sockfd)
 {
+=======
+vector<string> recieve_massage(int sockfd){
+>>>>>>> ea41a2c584373b53ddfbf2808acdc88bffa5ed29
     char buffer[1024] = {0};
     read(sockfd, buffer, 1024);
 
@@ -42,8 +49,13 @@ vector<string> recieve_massage(int sockfd)
         msg_details.push_back(segment);
     }
     return msg_details;
+<<<<<<< HEAD
 }
 //--------------------------------------------------
+=======
+
+}
+>>>>>>> ea41a2c584373b53ddfbf2808acdc88bffa5ed29
 
 class Node
 {
@@ -90,9 +102,10 @@ public:
             printf("connected to the server..\n");
 
             //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
-            string data = to_string(message_id++) + "," + to_string(this->id) + ",0,0,4,\n";
+            string data = to_string(message_id++) + "," + to_string(this->id) + ",0,0,4,";
             int len = sizeof(data);
             send(sockfd, &data[0], len, 0);
+<<<<<<< HEAD
 
             char buffer[1024] = {0};
             read(sockfd, buffer, 1024);
@@ -119,8 +132,21 @@ public:
 
             // vector<string> msg_details = recive_massage(sockfd);
             // print_message(stoi(msg_details.at(0)), stoi(msg_details.at(1)), stoi(msg_details.at(2)), stoi(msg_details.at(3)), stoi(msg_details.at(4)), "");
+=======
+            
+            vector<string> msg_details = recieve_massage(sockfd);
+            print_message(msg_details.at(0), msg_details.at(1), msg_details.at(2), msg_details.at(3), msg_details.at(4), "");
+
+            // Stores the destination id & fd in the neighbors map
+            int dest_id = stoi(msg_details.at(1));
+            int dest_fd = sockfd;
+            this->neighbors.insert(pair<int, int>(dest_id, dest_fd));
+            
+            cout << dest_id << endl;
+            return "Ack";
+>>>>>>> ea41a2c584373b53ddfbf2808acdc88bffa5ed29
         }
-        return "ack";
+        return "Ack";
     }
 
     string Send(int dest_id, string payload)
@@ -128,6 +154,7 @@ public:
         if (neighbors.count(dest_id) != 0)
         {
             printf("sending the message\n");
+<<<<<<< HEAD
             //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
             // int trailing = 0;
             string data = to_string(message_id++) + "," + to_string(this->id) + "," + to_string(dest_id) + ",0,32," + payload + "\n";
@@ -146,6 +173,24 @@ public:
             return "nack";
         }
         return "ack";
+=======
+
+            //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
+            string data = to_string(message_id++) + "," + to_string(this->id) + "," + to_string(dest_id) + ",0,32," + payload;
+            int len = sizeof(data);
+            int sockfd = neighbors.at(dest_id);
+            send(sockfd, &data[0], len, 0);
+
+            vector<string> msg_details = recieve_massage(sockfd);
+            print_message(msg_details.at(0), msg_details.at(1), msg_details.at(2), msg_details.at(3), msg_details.at(4), msg_details.at(5));
+        }
+        else
+        {
+            printf("sending failed\n");
+            return "Nack";
+        }
+        return "Ack";
+>>>>>>> ea41a2c584373b53ddfbf2808acdc88bffa5ed29
     }
 };
 
@@ -220,7 +265,11 @@ int main(int argc, char *argv[])
 
                 vector<string> msg_details = recieve_massage(connfd);
                 print_message(msg_details.at(0), msg_details.at(1), msg_details.at(2), msg_details.at(3), msg_details.at(4), "");
+<<<<<<< HEAD
 
+=======
+                
+>>>>>>> ea41a2c584373b53ddfbf2808acdc88bffa5ed29
                 // Stores the destination id & fd in the neighbors map
                 int dest_id = stoi(msg_details.at(1));
                 int dest_fd = connfd;
@@ -260,6 +309,15 @@ int main(int argc, char *argv[])
                 int port_address = stoi(seglist.at(2));
                 cout << n.Connect(ip_address, port_address) << endl;
             }
+<<<<<<< HEAD
+=======
+            else if (seglist.at(0) == "send"){
+                int dest_id = stoi(seglist.at(1));
+                string massage = seglist.at(3);
+
+                cout << n.Send(dest_id, massage) << endl;
+            }
+>>>>>>> ea41a2c584373b53ddfbf2808acdc88bffa5ed29
             else if (seglist.at(0) == "peers")
             {
                 for (const auto &pair : n.neighbors)
@@ -268,6 +326,7 @@ int main(int argc, char *argv[])
                 }
                 cout << "ack peers\n";
             }
+<<<<<<< HEAD
             else if (seglist.at(0) == "send")
             {
                 int dest_id = stoi(seglist.at(1));
@@ -297,3 +356,18 @@ int main(int argc, char *argv[])
         }
     }
 }
+=======
+        }else{
+            
+            vector<string> msg_details = recieve_massage(ret);
+            print_message(msg_details.at(0), msg_details.at(1), msg_details.at(2), msg_details.at(3), msg_details.at(4), msg_details.at(5));
+
+            //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
+            string data = to_string(message_id++) + "," + to_string(n.id) + "," + msg_details.at(1) + ",0,1," + msg_details.at(0);
+            int len = sizeof(data);
+            send(ret, &data[0], len, 0);
+        }
+    }
+
+}
+>>>>>>> ea41a2c584373b53ddfbf2808acdc88bffa5ed29

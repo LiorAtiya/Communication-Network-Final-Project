@@ -126,13 +126,21 @@ public:
         }
         else
         {
+
             printf("sending failed\n");
             return "Nack";
         }
         return "Ack";
     }
 
-    set<int> discover(int neighbor_id, int dest_id, set<int> visited)
+
+    //void find_all_paths(dest id){
+        //foreach(neibers){
+            //discover(destid, sockfd) - return route()
+        }
+    // }
+
+    string discover(int neighbor_id, int dest_id, set<int> visited)
     {
         //If visited in the neighbor node
         if (!visited.count(neighbor_id))
@@ -145,6 +153,10 @@ public:
             visited.insert(neighbor_id);
         }
         return visited;
+    }
+
+    string ack(int msg){
+        
     }
 
     string Route(int dest_id, set<int> visit)

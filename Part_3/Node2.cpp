@@ -15,6 +15,7 @@
 #include <sstream>
 #include <vector>
 #include <map>
+#include <set>
 
 static int message_id = 1;
 
@@ -27,7 +28,8 @@ void print_message(string msg_id, string src_id, string dest_id, string trail_ms
          << endl;
 }
 
-vector<string> recieve_massage(int sockfd){
+vector<string> recieve_massage(int sockfd)
+{
     char buffer[1024] = {0};
     read(sockfd, buffer, 1024);
 
@@ -40,14 +42,15 @@ vector<string> recieve_massage(int sockfd){
         msg_details.push_back(segment);
     }
     return msg_details;
-
 }
 
 class Node
 {
 public:
-    map<int, int> neighbors; // src: dest_port, dest_port
+    map<int, int> neighbors; // src: dest_id, dest_fd
+    map<int, string> paths;  //src: dest_id, path
     int id;
+    set<int> visited;
 
     string Connect(string ip, int port)
     {
@@ -91,7 +94,7 @@ public:
             string data = to_string(message_id++) + "," + to_string(this->id) + ",0,0,4,";
             int len = sizeof(data);
             send(sockfd, &data[0], len, 0);
-            
+
             vector<string> msg_details = recieve_massage(sockfd);
             print_message(msg_details.at(0), msg_details.at(1), msg_details.at(2), msg_details.at(3), msg_details.at(4), "");
 
@@ -99,7 +102,7 @@ public:
             int dest_id = stoi(msg_details.at(1));
             int dest_fd = sockfd;
             this->neighbors.insert(pair<int, int>(dest_id, dest_fd));
-            
+
             cout << dest_id << endl;
             return "Ack";
         }
@@ -129,6 +132,47 @@ public:
         return "Ack";
     }
 
+    set<int> discover(int neighbor_id, int dest_id, set<int> visited)
+    {
+        //If visited in the neighbor node
+        if (!visited.count(neighbor_id))
+        {
+            //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
+            string data = to_string(message_id++) + "," + to_string(this->id) + "," + to_string(neighbor_id) + ",0,8," + to_string(dest_id);
+            int len = sizeof(data);
+            send(this->neighbors.at(neighbor_id), &data[0], len, 0);
+
+            visited.insert(neighbor_id);
+        }
+        return visited;
+    }
+
+    string Route(int dest_id, set<int> visit)
+    {
+        if (neighbors.size() == 0)
+            return "nack";
+
+        //There is a path
+        if (this->neighbors.count(dest_id))
+        {
+            // cout << this->paths.at(dest_id) << endl;
+            return "True";
+        }
+
+        this->visited.insert(this->id);
+
+        for (auto &pair : this->neighbors)
+        {
+            this->visited = discover(pair.first, dest_id, this->visited);
+        }
+
+        for (auto &pair : this->neighbors)
+        {
+            Route(pair.first, this->visited);
+        }
+
+        return "ack";
+    }
 };
 
 int main(int argc, char *argv[])
@@ -204,7 +248,7 @@ int main(int argc, char *argv[])
 
                 vector<string> msg_details = recieve_massage(connfd);
                 print_message(msg_details.at(0), msg_details.at(1), msg_details.at(2), msg_details.at(3), msg_details.at(4), "");
-                
+
                 // Stores the destination id & fd in the neighbors map
                 int dest_id = stoi(msg_details.at(1));
                 int dest_fd = connfd;
@@ -244,11 +288,25 @@ int main(int argc, char *argv[])
                 int port_address = stoi(seglist.at(2));
                 cout << n.Connect(ip_address, port_address) << endl;
             }
-            else if (seglist.at(0) == "send"){
+            else if (seglist.at(0) == "send")
+            {
                 int dest_id = stoi(seglist.at(1));
                 string massage = seglist.at(3);
 
                 cout << n.Send(dest_id, massage) << endl;
+            }
+            else if (seglist.at(0) == "route")
+            {
+
+                int dest_id = stoi(seglist.at(1));
+                cout << n.Route(dest_id, n.visited) << endl;
+
+                if(n.visited.count(dest_id)) { cout << "True" << endl; }
+                
+                for(auto x : n.visited){
+                    cout << x << " ";
+                }
+
             }
             else if (seglist.at(0) == "peers")
             {
@@ -258,8 +316,10 @@ int main(int argc, char *argv[])
                 }
                 cout << "ack peers\n";
             }
-        }else{
-            
+        }
+        else
+        {
+
             vector<string> msg_details = recieve_massage(ret);
             print_message(msg_details.at(0), msg_details.at(1), msg_details.at(2), msg_details.at(3), msg_details.at(4), msg_details.at(5));
 
@@ -269,5 +329,4 @@ int main(int argc, char *argv[])
             send(ret, &data[0], len, 0);
         }
     }
-
 }

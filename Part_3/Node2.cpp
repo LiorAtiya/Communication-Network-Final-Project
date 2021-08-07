@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include <time.h>
 #include "select.hpp"
-
+#include <cmath>
 #include <string.h>
 #include <iostream>
 #include <sstream>
@@ -45,72 +45,72 @@ vector<string> recieve_massage(int sockfd)
     return msg_details;
 }
 
-string compare_paths(string path_1, string path_2)
-{
-    string default_ans = path_1;
-    counter_1 = 1;
-    counter_2 = 1;
+// string compare_paths(string path_1, string path_2)
+// {
+//     string default_ans = path_1;
+//     counter_1 = 1;
+//     counter_2 = 1;
 
-    // Iterates over the first path and counts the number of nodes
-    for (int i = 0; i < path_1.length(); i++)
-    {
-        if (path_1[i] == ",")
-        {
-            counter_1++;
-        }
-    }
+//     // Iterates over the first path and counts the number of nodes
+//     for (int i = 0; i < path_1.length(); i++)
+//     {
+//         if (path_1[i] == ",")
+//         {
+//             counter_1++;
+//         }
+//     }
 
-    // Iterates over the second path and counts the number of nodes
-    for (int i = 0; i < path_2.length(); i++)
-    {
-        if (path_2[i] == ",")
-        {
-            counter_2++;
-        }
-    }
+//     // Iterates over the second path and counts the number of nodes
+//     for (int i = 0; i < path_2.length(); i++)
+//     {
+//         if (path_2[i] == ",")
+//         {
+//             counter_2++;
+//         }
+//     }
 
-    if (counter_1 > counter_2)
-    {
-        return path_1;
-    }
-    else if (counter_1 < counter_2)
-    {
-        return path_2;
-    }
-    else
-    {
-        // Iterates over the both of the paths and and compare the nodes
-        for (int i = 0; i < path_1.length(); i++)
-        {
-            if (path_1[i] > path_2[i])
-            {
-                return path_1;
-            }
-            else if (path_1[i] > path_2[i])
-            {
-                return path_2;
-            }
-        }
-    }
+//     if (counter_1 > counter_2)
+//     {
+//         return path_1;
+//     }
+//     else if (counter_1 < counter_2)
+//     {
+//         return path_2;
+//     }
+//     else
+//     {
+//         // Iterates over the both of the paths and and compare the nodes
+//         for (int i = 0; i < path_1.length(); i++)
+//         {
+//             if (path_1[i] > path_2[i])
+//             {
+//                 return path_1;
+//             }
+//             else if (path_1[i] > path_2[i])
+//             {
+//                 return path_2;
+//             }
+//         }
+//     }
 
-    return ans;
-}
+//     return ans;
+// }
 
-string shortest_route(vector<string> routes)
-{
-    int i = 0;
-    while (routes.size() > 1)
-    {
-        string path_1 = routes.at(0);
-        routes.erase(0);
-        string path_2 = routes.at(1);
-        routes.erase(0);
-        string short_path = compare_paths(path_1, path_2);
-        routes.push_back(short_path);
-    }
+// string shortest_route(vector<string> routes)
+// {
+//     int i = 0;
+//     while (routes.size() > 1)
+//     {
+//         string path_1 = routes.at(0);
+//         routes.erase(0);
+//         string path_2 = routes.at(1);
+//         routes.erase(0);
+//         string short_path = compare_paths(path_1, path_2);
+//         routes.push_back(short_path);
+//     }
 
-    return routes.at(0);
-}
+//     return routes.at(0);
+// }
 //--------------------------------------------------
 
 class Node
@@ -183,15 +183,47 @@ public:
         if (neighbors.count(dest_id) != 0)
         {
             printf("sending the message\n");
+            int MAX_SIZE = 488;
+            int trailing = round(sizeof(payload) / MAX_SIZE);
+            cout << "trailing: " << trailing << endl;
+            vector<string> payloads;
 
-            //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
-            string data = to_string(message_id++) + "," + to_string(this->id) + "," + to_string(dest_id) + ",0,32," + payload;
-            int len = sizeof(data);
-            int sockfd = neighbors.at(dest_id);
-            send(sockfd, &data[0], len, 0);
+            if (sizeof(payload) > MAX_SIZE)
+            {
+                int temp_size = sizeof(payload);
+                int i = 0;
+                while (temp_size > 0)
+                {
+                    string temp = "";
+                    while (i % MAX_SIZE < MAX_SIZE)
+                    {
+                        temp[i] += payload[i];
+                        temp_size--;
+                        i++;
+                    }
+                    payloads.push_back(temp);
+                }
+            }
 
-            vector<string> msg_details = recieve_massage(sockfd);
-            print_message(msg_details.at(0), msg_details.at(1), msg_details.at(2), msg_details.at(3), msg_details.at(4), msg_details.at(5));
+            else
+            {
+                payloads.push_back(payload);
+            }
+
+            int j = 0;
+            while (trailing >= 0)
+            {
+                //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
+                cout << "payloads: " << payloads.at(j++) << endl;
+                string data = to_string(message_id++) + "," + to_string(this->id) + "," + to_string(dest_id) +
+                              "," + to_string(trailing--) + ",32," + payloads.at(j++);
+                int len = sizeof(data);
+                int sockfd = neighbors.at(dest_id);
+                send(sockfd, &data[0], len, 0);
+
+                vector<string> msg_details = recieve_massage(sockfd);
+                print_message(msg_details.at(0), msg_details.at(1), msg_details.at(2), msg_details.at(3), msg_details.at(4), msg_details.at(5));
+            }
         }
         else
         {
@@ -201,55 +233,55 @@ public:
         return "Ack";
     }
 
-    void find_paths(dest_id)
-    {
-        // iterates over all the neighbours of the node
-        for (const auto &node : this->neighbors)
-        {
-            int prev_id = this->id;
-            int current_id = node.first;
-            int sockfd = node.second;
-            discover(prev_id, dest_id, current_id, sockfd);
-        }
-    }
+    // void find_paths(int dest_id)
+    // {
+    //     // iterates over all the neighbours of the node
+    //     for (const auto &node : this->neighbors)
+    //     {
+    //         int prev_id = this->id;
+    //         int current_id = node.first;
+    //         int sockfd = node.second;
+    //         discover(prev_id, dest_id, current_id, sockfd);
+    //     }
+    // }
 
-    string discover(int prev_id, int dest_id, int current_id, int sockfd)
-    {
-        if (current_id == dest_id) // i am the target node
-        {
-            cout << "ack" << endl;
-            Route(current_id);
-        }
+    // string discover(int prev_id, int dest_id, int current_id, int sockfd)
+    // {
+    //     if (current_id == dest_id) // i am the target node
+    //     {
+    //         cout << "ack" << endl;
+    //         Route(current_id);
+    //     }
 
-        else // i am not the target node
-        {
-            // iterates over all the neighbours of the node
-            for (const auto &node : this->neighbors)
-            {
-                if (node != prev_id) // if the neighbor is not the previous node
-                {
-                    int new_prev_id = this->id;
-                    int new_current_id = node.first;
-                    int new_sockfd = node.second;
-                    discover(new_prev_id, dest_id, new_current_id, new_sockfd);
-                }
-            }
-        }
+    //     else // i am not the target node
+    //     {
+    //         // iterates over all the neighbours of the node
+    //         for (const auto &node : this->neighbors)
+    //         {
+    //             if (node != prev_id) // if the neighbor is not the previous node
+    //             {
+    //                 int new_prev_id = this->id;
+    //                 int new_current_id = node.first;
+    //                 int new_sockfd = node.second;
+    //                 discover(new_prev_id, dest_id, new_current_id, new_sockfd);
+    //             }
+    //         }
+    //     }
 
-        return "nack";
-    }
+    //     return "nack";
+    // }
 
-    string ack(int msg)
-    {
-    }
+    // string ack(int msg)
+    // {
+    // }
 
-    string Route(int dest_id)
-    {
-        vector<string> routes; // a vector that contains all the paths
-        string short_path = shortest_route(routes);
+    // string Route(int dest_id)
+    // {
+    //     vector<string> routes; // a vector that contains all the paths
+    //     string short_path = shortest_route(routes);
 
-        return short_path;
-    }
+    //     return short_path;
+    // }
 };
 
 int main(int argc, char *argv[])
@@ -370,12 +402,12 @@ int main(int argc, char *argv[])
 
                 cout << n.Send(dest_id, massage) << endl;
             }
-            else if (seglist.at(0) == "route")
-            {
+            // else if (seglist.at(0) == "route")
+            // {
 
-                int dest_id = stoi(seglist.at(1));
-                cout << n.find_paths(dest_id) << endl;
-            }
+            //     int dest_id = stoi(seglist.at(1));
+            //     cout << n.find_paths(dest_id) << endl;
+            // }
             else if (seglist.at(0) == "peers")
             {
                 for (const auto &pair : n.neighbors)

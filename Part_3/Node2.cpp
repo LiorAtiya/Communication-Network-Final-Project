@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include <time.h>
 #include "select.hpp"
-
+#include <cmath>
 #include <string.h>
 #include <iostream>
 #include <sstream>
@@ -196,15 +196,47 @@ public:
         if (neighbors.count(dest_id) != 0)
         {
             printf("sending the message\n");
+            int MAX_SIZE = 488;
+            int trailing = round(sizeof(payload) / MAX_SIZE);
+            cout << "trailing: " << trailing << endl;
+            vector<string> payloads;
 
-            //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
-            string data = to_string(rand() % 100 + 1) + "," + to_string(this->id) + "," + to_string(dest_id) + ",0,32," + payload;
-            int len = sizeof(data);
-            int sockfd = neighbors.at(dest_id);
-            send(sockfd, &data[0], len, 0);
+            if (sizeof(payload) > MAX_SIZE)
+            {
+                int temp_size = sizeof(payload);
+                int i = 0;
+                while (temp_size > 0)
+                {
+                    string temp = "";
+                    while (i % MAX_SIZE < MAX_SIZE)
+                    {
+                        temp[i] += payload[i];
+                        temp_size--;
+                        i++;
+                    }
+                    payloads.push_back(temp);
+                }
+            }
 
-            vector<string> msg_details = recieve_massage(sockfd);
-            print_message(msg_details.at(0), msg_details.at(1), msg_details.at(2), msg_details.at(3), msg_details.at(4), msg_details.at(5));
+            else
+            {
+                payloads.push_back(payload);
+            }
+
+            int j = 0;
+            while (trailing >= 0)
+            {
+                //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
+                cout << "payloads: " << payloads.at(j++) << endl;
+                string data = to_string(rand() % 100 + 1) + "," + to_string(this->id) + "," + to_string(dest_id) +
+                              "," + to_string(trailing--) + ",32," + payloads.at(j++);
+                int len = sizeof(data);
+                int sockfd = neighbors.at(dest_id);
+                send(sockfd, &data[0], len, 0);
+
+                vector<string> msg_details = recieve_massage(sockfd);
+                print_message(msg_details.at(0), msg_details.at(1), msg_details.at(2), msg_details.at(3), msg_details.at(4), msg_details.at(5));
+            }
         }
         else
         {

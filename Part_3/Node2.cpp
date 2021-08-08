@@ -119,15 +119,15 @@ public:
     int id;
     set<int> visited;
 
-    string Ack(int src_id, int dest_id ,int msg_id)
+    string Ack(int src_id, int dest_id, int msg_id)
     {
-        string data = to_string(rand() % 100 + 1) + "," + to_string(src_id) + "," + to_string(dest_id) + ",0,1,"+to_string(msg_id);
+        string data = to_string(rand() % 100 + 1) + "," + to_string(src_id) + "," + to_string(dest_id) + ",0,1," + to_string(msg_id);
         return data;
     }
 
-    string Nack(int src_id, int dest_id ,int msg_id)
+    string Nack(int src_id, int dest_id, int msg_id)
     {
-        string data = to_string(rand() % 100 + 1) + "," + to_string(src_id) + "," + to_string(dest_id) + ",0,2,"+to_string(msg_id);
+        string data = to_string(rand() % 100 + 1) + "," + to_string(src_id) + "," + to_string(dest_id) + ",0,2," + to_string(msg_id);
         return data;
     }
 
@@ -183,7 +183,7 @@ public:
             int dest_id = stoi(msg_details.at(1));
             int dest_fd = sockfd;
             this->neighbors.insert(pair<int, int>(dest_id, dest_fd));
-            string path =  to_string(this->id) + "->" + to_string(dest_id);
+            string path = to_string(this->id) + "->" + to_string(dest_id);
             this->paths.insert(pair<int, string>(dest_id, path));
             cout << dest_id << endl;
             return "Ack";
@@ -197,24 +197,28 @@ public:
         {
             printf("sending the message\n");
             int MAX_SIZE = 488;
-            int trailing = sizeof(payload) / MAX_SIZE;
+            int trailing = payload.size() / MAX_SIZE;
             cout << "trailing: " << trailing << endl;
             vector<string> payloads;
 
-            if (sizeof(payload) > MAX_SIZE)
+            cout << "payload.size(): " << payload.size() << endl;
+            if (payload.size() > MAX_SIZE)
             {
-                int temp_size = sizeof(payload);
-                int i = 0;
-                while (temp_size > 0)
+                int temp_size = payload.size();
+                int i = 1;
+                string temp = payload[0] + "";
+
+                while (i < temp_size)
                 {
-                    string temp = "";
-                    while (i % MAX_SIZE < MAX_SIZE)
+                    if (i % MAX_SIZE == 0)
                     {
-                        temp[i] += payload[i];
-                        temp_size--;
-                        i++;
+                        payloads.push_back(temp);
+                        temp = "";
+
                     }
-                    payloads.push_back(temp);
+
+                    temp += payload[i];
+                    i++;
                 }
             }
 
@@ -223,11 +227,17 @@ public:
                 payloads.push_back(payload);
             }
 
+            for (auto &i : payloads)
+            {
+                cout << "temp: " << i << endl;
+                cout << "another string" << endl;
+            }
+
             int j = 0;
             while (trailing >= 0)
             {
                 //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
-                cout << "payloads: " << payloads.at(j++) << endl;
+                cout << "payloads: " << payloads.at(j) << endl;
                 string data = to_string(rand() % 100 + 1) + "," + to_string(this->id) + "," + to_string(dest_id) +
                               "," + to_string(trailing--) + ",32," + payloads.at(j++);
                 int len = sizeof(data);
@@ -249,7 +259,8 @@ public:
     string FindPaths(int dest_id)
     {
         //Already pathd is calculated
-        if(this->paths.count(dest_id) != 0){
+        if (this->paths.count(dest_id) != 0)
+        {
             cout << "ack\n";
             return this->paths.at(dest_id);
         }
@@ -263,14 +274,18 @@ public:
             int current_id = node.first;
             int sockfd = node.second;
             string ans = discover(dest_id, sockfd);
-            if(ans == "nack"){
+            if (ans == "nack")
+            {
                 count_nack++;
-            }else{
+            }
+            else
+            {
                 all_paths.push_back(ans);
             }
         }
         //If all return nack - don't have paths
-        if(count_nack == this->neighbors.size()){
+        if (count_nack == this->neighbors.size())
+        {
             return "nack";
         }
 
@@ -283,7 +298,8 @@ public:
         if (neighbor_id != dest_id)
         {
             //Neighbors of neighbor node
-            for(auto &pair : this->neighbors){
+            for (auto &pair : this->neighbors)
+            {
                 //-----Send discover massage------
                 //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
                 string data = to_string(rand() % 100 + 1) + "," + to_string(this->id) + "," + to_string(neighbor_id) + ",0,8," + to_string(dest_id);
@@ -293,14 +309,18 @@ public:
 
                 vector<string> msg_details = recieve_massage(sockfd);
                 //If src id = dest id
-                if(msg_details.at(1) == msg_details.at(2)){
+                if (msg_details.at(1) == msg_details.at(2))
+                {
                     return "Have a path";
-                }else{
+                }
+                else
+                {
                     discover(pair.first, dest_id);
                 }
-                
             }
-        } else{
+        }
+        else
+        {
             return "Have a path";
         }
         return "nack";
@@ -344,7 +364,7 @@ public:
 int main(int argc, char *argv[])
 {
     /* initialize random seed: */
-    srand (time(NULL));
+    srand(time(NULL));
 
     int listenfd = 0;
     int ret, i;
@@ -427,7 +447,7 @@ int main(int argc, char *argv[])
                 //------Send Ack massage------
                 //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
                 int msg_id = stoi(msg_details.at(0));
-                string data = n.Ack(n.id,dest_id ,msg_id);
+                string data = n.Ack(n.id, dest_id, msg_id);
                 int len = sizeof(data);
                 send(connfd, &data[0], len, 0);
 
@@ -469,10 +489,9 @@ int main(int argc, char *argv[])
             }
             else if (seglist.at(0) == "route")
             {
-                
+
                 int dest_id = stoi(seglist.at(1));
                 cout << n.FindPaths(dest_id) << endl;
-
             }
             else if (seglist.at(0) == "peers")
             {
@@ -482,7 +501,6 @@ int main(int argc, char *argv[])
                     cout << pair.first << ",";
                 }
                 cout << "\n";
-                
             }
         }
         else

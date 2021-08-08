@@ -184,7 +184,7 @@ public:
         {
             printf("sending the message\n");
             int MAX_SIZE = 488;
-            int trailing = round(sizeof(payload) / MAX_SIZE);
+            int trailing = sizeof(payload) / MAX_SIZE;
             cout << "trailing: " << trailing << endl;
             vector<string> payloads;
 

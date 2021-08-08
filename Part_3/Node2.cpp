@@ -17,8 +17,6 @@
 #include <map>
 #include <set>
 
-static int message_id = 1;
-
 using namespace std;
 
 //-------------Utility-functions-----------------
@@ -121,6 +119,18 @@ public:
     int id;
     set<int> visited;
 
+    string Ack(int src_id, int dest_id ,int msg_id)
+    {
+        string data = to_string(rand() % 100 + 1) + "," + to_string(src_id) + "," + to_string(dest_id) + ",0,1,"+to_string(msg_id);
+        return data;
+    }
+
+    string Nack(int src_id, int dest_id ,int msg_id)
+    {
+        string data = to_string(rand() % 100 + 1) + "," + to_string(src_id) + "," + to_string(dest_id) + ",0,2,"+to_string(msg_id);
+        return data;
+    }
+
     string Connect(string ip, int port)
     {
         int sockfd;
@@ -159,19 +169,22 @@ public:
         {
             printf("connected to the server..\n");
 
+            //------Send connect massage------
             //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
-            string data = to_string(message_id++) + "," + to_string(this->id) + ",0,0,4,";
+            string data = to_string(rand() % 100 + 1) + "," + to_string(this->id) + ",0,0,4,";
             int len = sizeof(data);
             send(sockfd, &data[0], len, 0);
 
+            //------Recive ack massage------
             vector<string> msg_details = recieve_massage(sockfd);
-            print_message(msg_details.at(0), msg_details.at(1), msg_details.at(2), msg_details.at(3), msg_details.at(4), "");
+            print_message(msg_details.at(0), msg_details.at(1), msg_details.at(2), msg_details.at(3), msg_details.at(4), msg_details.at(5));
 
             // Stores the destination id & fd in the neighbors map
             int dest_id = stoi(msg_details.at(1));
             int dest_fd = sockfd;
             this->neighbors.insert(pair<int, int>(dest_id, dest_fd));
-
+            string path =  to_string(this->id) + "->" + to_string(dest_id);
+            this->paths.insert(pair<int, string>(dest_id, path));
             cout << dest_id << endl;
             return "Ack";
         }
@@ -215,7 +228,7 @@ public:
             {
                 //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
                 cout << "payloads: " << payloads.at(j++) << endl;
-                string data = to_string(message_id++) + "," + to_string(this->id) + "," + to_string(dest_id) +
+                string data = to_string(rand() % 100 + 1) + "," + to_string(this->id) + "," + to_string(dest_id) +
                               "," + to_string(trailing--) + ",32," + payloads.at(j++);
                 int len = sizeof(data);
                 int sockfd = neighbors.at(dest_id);
@@ -233,17 +246,65 @@ public:
         return "Ack";
     }
 
-    // void find_paths(int dest_id)
-    // {
-    //     // iterates over all the neighbours of the node
-    //     for (const auto &node : this->neighbors)
-    //     {
-    //         int prev_id = this->id;
-    //         int current_id = node.first;
-    //         int sockfd = node.second;
-    //         discover(prev_id, dest_id, current_id, sockfd);
-    //     }
-    // }
+    string FindPaths(int dest_id)
+    {
+        //Already pathd is calculated
+        if(this->paths.count(dest_id) != 0){
+            cout << "ack\n";
+            return this->paths.at(dest_id);
+        }
+
+        int count_nack = 0;
+        vector<string> all_paths;
+        // iterates over all the neighbours of the node
+        for (const auto &node : this->neighbors)
+        {
+            // int prev_id = this->id;
+            int current_id = node.first;
+            int sockfd = node.second;
+            string ans = discover(dest_id, sockfd);
+            if(ans == "nack"){
+                count_nack++;
+            }else{
+                all_paths.push_back(ans);
+            }
+        }
+        //If all return nack - don't have paths
+        if(count_nack == this->neighbors.size()){
+            return "nack";
+        }
+
+        //The shortest path
+        return all_paths.at(0);
+    }
+
+    string discover(int neighbor_id, int dest_id)
+    {
+        if (neighbor_id != dest_id)
+        {
+            //Neighbors of neighbor node
+            for(auto &pair : this->neighbors){
+                //-----Send discover massage------
+                //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
+                string data = to_string(rand() % 100 + 1) + "," + to_string(this->id) + "," + to_string(neighbor_id) + ",0,8," + to_string(dest_id);
+                int len = sizeof(data);
+                int sockfd = pair.second;
+                send(sockfd, &data[0], len, 0);
+
+                vector<string> msg_details = recieve_massage(sockfd);
+                //If src id = dest id
+                if(msg_details.at(1) == msg_details.at(2)){
+                    return "Have a path";
+                }else{
+                    discover(pair.first, dest_id);
+                }
+                
+            }
+        } else{
+            return "Have a path";
+        }
+        return "nack";
+    }
 
     // string discover(int prev_id, int dest_id, int current_id, int sockfd)
     // {
@@ -271,10 +332,6 @@ public:
     //     return "nack";
     // }
 
-    // string ack(int msg)
-    // {
-    // }
-
     // string Route(int dest_id)
     // {
     //     vector<string> routes; // a vector that contains all the paths
@@ -286,6 +343,9 @@ public:
 
 int main(int argc, char *argv[])
 {
+    /* initialize random seed: */
+    srand (time(NULL));
+
     int listenfd = 0;
     int ret, i;
     int connfd, len;
@@ -353,6 +413,7 @@ int main(int argc, char *argv[])
             {
                 printf("server acccept the client...\n");
 
+                //------Recieve connect massage------
                 vector<string> msg_details = recieve_massage(connfd);
                 print_message(msg_details.at(0), msg_details.at(1), msg_details.at(2), msg_details.at(3), msg_details.at(4), "");
 
@@ -360,9 +421,13 @@ int main(int argc, char *argv[])
                 int dest_id = stoi(msg_details.at(1));
                 int dest_fd = connfd;
                 n.neighbors.insert(pair<int, int>(dest_id, dest_fd));
+                string path = to_string(n.id) + "->" + to_string(dest_id);
+                n.paths.insert(pair<int, string>(dest_id, path));
 
+                //------Send Ack massage------
                 //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
-                string data = to_string(message_id++) + "," + to_string(n.id) + "," + to_string(dest_id) + ",0,1,";
+                int msg_id = stoi(msg_details.at(0));
+                string data = n.Ack(n.id,dest_id ,msg_id);
                 int len = sizeof(data);
                 send(connfd, &data[0], len, 0);
 
@@ -402,19 +467,22 @@ int main(int argc, char *argv[])
 
                 cout << n.Send(dest_id, massage) << endl;
             }
-            // else if (seglist.at(0) == "route")
-            // {
+            else if (seglist.at(0) == "route")
+            {
+                
+                int dest_id = stoi(seglist.at(1));
+                cout << n.FindPaths(dest_id) << endl;
 
-            //     int dest_id = stoi(seglist.at(1));
-            //     cout << n.find_paths(dest_id) << endl;
-            // }
+            }
             else if (seglist.at(0) == "peers")
             {
+                cout << "ack\n";
                 for (const auto &pair : n.neighbors)
                 {
-                    cout << "\nID: " << pair.first << " | Socket(File descriptor): " << pair.second << endl;
+                    cout << pair.first << ",";
                 }
-                cout << "ack peers\n";
+                cout << "\n";
+                
             }
         }
         else
@@ -423,7 +491,7 @@ int main(int argc, char *argv[])
             print_message(msg_details.at(0), msg_details.at(1), msg_details.at(2), msg_details.at(3), msg_details.at(4), msg_details.at(5));
 
             //Data = Msg_ID | Src_ID | Dest_ID | # Trailing Msg | Function ID | Payload
-            string data = to_string(message_id++) + "," + to_string(n.id) + "," + msg_details.at(1) + ",0,1," + msg_details.at(0);
+            string data = to_string(rand() % 100 + 1) + "," + to_string(n.id) + "," + msg_details.at(1) + ",0,1," + msg_details.at(0);
             int len = sizeof(data);
             send(ret, &data[0], len, 0);
         }
